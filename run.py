@@ -1,7 +1,5 @@
 import argparse
 import logging
-import os
-
 import sys
 import time
 
@@ -20,48 +18,11 @@ formatter = logging.Formatter('[%(asctime)s] [%(name)s] [%(levelname)s] %(messag
 ch.setFormatter(formatter)
 logger.addHandler(ch)
 
-def readSequence(video_name):
-    #video_name = 'fall001'p
-    filePath = "./video/" + video_name
-    file_body_parts = open(filePath + '/body_parts.txt', 'w')
-
-    path, dirs, files = next(os.walk(filePath))
-    file_count = len(files)
-    print(file_count)
-    countFrame = file_count*5-4
-    print(countFrame)
-
-    w, h = model_wh('432x368')
-    if w == 0 or h == 0:
-        e = TfPoseEstimator(get_graph_path(args.model), target_size=(432, 368))
-    else:
-        e = TfPoseEstimator(get_graph_path(args.model), target_size=(w, h))
-    for i in range(1, countFrame, 5):
-        imagePath = filePath + '/scene'+str(i).zfill(5)+'.png'
-        image = common.read_imgfile(imagePath, None, None)
-        #t = time.time()
-        humans = e.inference(image, resize_to_default=(w > 0 and h > 0), upsample_size=4.0)
-        #elapsed = time.time() - t
-        #logger.info('inference image: %s in %.4f seconds.' % (imagePath, elapsed))
-        image, humans = TfPoseEstimator.draw_humans(image, humans, imgcopy=False)
-
-        file_body_parts.write('[' + str(i) + ']\n')
-        for human in humans:
-            for i in range(common.CocoPart.Background.value):
-                if i not in human.body_parts.keys():
-                    continue
-                body_part = human.body_parts[i]
-                print(body_part)
-                file_body_parts.write(str(body_part)+'\n')
-    file_body_parts.close()
-
-
-
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='tf-pose-estimation run')
-    parser.add_argument('--name', type=str, default='fall001')
-    parser.add_argument('--model', type=str, default='mobilenet_v2_large',
+    parser.add_argument('--image', type=str, default='./images/p1.jpg')
+    parser.add_argument('--model', type=str, default='cmu',
                         help='cmu / mobilenet_thin / mobilenet_v2_large / mobilenet_v2_small')
     parser.add_argument('--resize', type=str, default='0x0',
                         help='if provided, resize images before they are processed. '
@@ -70,8 +31,7 @@ if __name__ == '__main__':
                         help='if provided, resize heatmaps before they are post-processed. default=1.0')
 
     args = parser.parse_args()
-    readSequence(args.name)
-    '''
+
     w, h = model_wh(args.resize)
     if w == 0 or h == 0:
         e = TfPoseEstimator(get_graph_path(args.model), target_size=(432, 368))
@@ -90,18 +50,7 @@ if __name__ == '__main__':
 
     logger.info('inference image: %s in %.4f seconds.' % (args.image, elapsed))
 
-    image, humans = TfPoseEstimator.draw_humans(image, humans, imgcopy=False)
-
-    '''
-    #Aquisição das body parts
-    '''
-    for human in humans:
-        for i in range(common.CocoPart.Background.value):
-            if i not in human.body_parts.keys():
-                continue
-            body_part = human.body_parts[i]
-            print(body_part)
-
+    image = TfPoseEstimator.draw_humans(image, humans, imgcopy=False)
 
     try:
         import matplotlib.pyplot as plt
@@ -140,6 +89,4 @@ if __name__ == '__main__':
     except Exception as e:
         logger.warning('matplitlib error, %s' % e)
         cv2.imshow('result', image)
-        print(humans)
         cv2.waitKey()
-    '''
